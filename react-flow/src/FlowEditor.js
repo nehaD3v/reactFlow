@@ -10,7 +10,6 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-
 const initialNodes = [
     {
         id: "1",
@@ -22,69 +21,77 @@ const initialNodes = [
 const FlowEditor = () => {
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-    const [history, setHistory] = useState([]);
-    const [redoStack, setRedoStack] = useState([]);
+    const [history, setHistory] = useState([]); 
+    const [redoStack, setRedoStack] = useState([]); 
     const [selectedNode, setSelectedNode] = useState(null);
 
+    const saveHistory = () => {
+        setHistory((prev) => [...prev, { nodes, edges }]);
+        setRedoStack([]); 
+    };
+
     const addNode = () => {
+        saveHistory();
         const newNode = {
             id: (nodes.length + 1).toString(),
             data: { label: `Node ${nodes.length + 1}` },
             position: { x: Math.random() * 400, y: Math.random() * 400 },
         };
-
-        setHistory([...history, { nodes, edges }]);
-        setNodes([...nodes, newNode]);
-        setRedoStack([]); // Clear redo stack on new action
+        setNodes((prev) => [...prev, newNode]);
     };
 
-    useEffect(() => {
-        console.log(nodes);
-        console.log("edges/ / / / // ");
-        console.log(edges);
-    });
-
     const onNodeClick = (event, node) => {
-        setSelectedNode(node.id); 
+        setSelectedNode(node.id);
     };
 
     const deleteNode = () => {
         if (!selectedNode) return;
-        setHistory([...history, { nodes, edges }]); 
-        const updatedNodes = nodes.filter((node) => node.id !== selectedNode);
-        const updatedEdges = edges.filter(
-            (edge) => edge.source !== selectedNode && edge.target !== selectedNode
+        saveHistory();
+
+        setNodes((prev) => prev.filter((node) => node.id !== selectedNode));
+        setEdges((prev) =>
+            prev.filter((edge) => edge.source !== selectedNode && edge.target !== selectedNode)
         );
-        setNodes(updatedNodes);
-        setEdges(updatedEdges);
-        setRedoStack([]); 
-        setSelectedNode(null); 
+
+        setSelectedNode(null);
+    };
+
+    const handleNodesChange = (changes) => {
+        saveHistory();
+        onNodesChange(changes);
+    };
+
+    const handleEdgeAdd = (connection) => {
+        saveHistory(); 
+        setEdges((prev) => addEdge(connection, prev));
     };
 
     const undo = () => {
         if (history.length === 0) return;
-        const previousState = history[history.length - 1];
-        setRedoStack([...redoStack, { nodes, edges }]);
-        setNodes(previousState.nodes);
-        setEdges(previousState.edges);
-        setHistory(history.slice(0, -1));
+        const prevState = history[history.length - 1];
+
+        setRedoStack((prev) => [...prev, { nodes, edges }]); 
+        setNodes(prevState.nodes);
+        setEdges(prevState.edges);
+        setHistory(history.slice(0, -1)); 
     };
 
     const redo = () => {
         if (redoStack.length === 0) return;
         const nextState = redoStack[redoStack.length - 1];
-        setHistory([...history, { nodes, edges }]);
+
+        setHistory((prev) => [...prev, { nodes, edges }]); 
         setNodes(nextState.nodes);
         setEdges(nextState.edges);
-        setRedoStack(redoStack.slice(0, -1));
+        setRedoStack(redoStack.slice(0, -1)); 
     };
 
     return (
         <div style={{ width: "100vw", height: "100vh" }}>
             <div style={{ marginBottom: 10 }}>
                 <button onClick={addNode}>Add Node</button>
-                <button onClick={deleteNode} disabled={nodes.length === 0}>
-                    Delete Node
+                <button onClick={deleteNode} disabled={!selectedNode}>
+                    Delete Selected Node
                 </button>
                 <button onClick={undo} disabled={history.length === 0}>
                     Undo
@@ -96,10 +103,10 @@ const FlowEditor = () => {
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                onConnect={(params) => setEdges((eds) => addEdge(params, eds))}
-                onNodeClick={onNodeClick}
+                onNodesChange={handleNodesChange}
+                onEdgesChange={onEdgesChange} 
+                onConnect={handleEdgeAdd} 
+                onNodeClick={onNodeClick} 
                 fitView
             >
                 <Background />
