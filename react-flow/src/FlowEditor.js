@@ -34,7 +34,7 @@ const FlowEditor = () => {
         saveHistory();
         const newNode = {
             id: (nodes.length + 1).toString(),
-            data: { label: `Node ${nodes.length + 1}` },
+            data: { label: `Table project data ${nodes.length + 1}` },
             position: { x: Math.random() * 400, y: Math.random() * 400 },
         };
         setNodes((prev) => [...prev, newNode]);
