@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
     ReactFlow,
     addEdge,
@@ -13,7 +13,7 @@ import "@xyflow/react/dist/style.css";
 const initialNodes = [
     {
         id: "1",
-        data: { label: "Node 1" },
+        data: { label: "Table project data 1" },
         position: { x: 250, y: 5 },
     },
 ];
@@ -21,13 +21,14 @@ const initialNodes = [
 const FlowEditor = () => {
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-    const [history, setHistory] = useState([]); 
-    const [redoStack, setRedoStack] = useState([]); 
+    const [history, setHistory] = useState([]);
+    const [redoStack, setRedoStack] = useState([]);
+    const [savedState, setSavedState] = useState({ nodes: initialNodes, edges: [] });
     const [selectedNode, setSelectedNode] = useState(null);
 
     const saveHistory = () => {
         setHistory((prev) => [...prev, { nodes, edges }]);
-        setRedoStack([]); 
+        setRedoStack([]);
     };
 
     const addNode = () => {
@@ -62,33 +63,40 @@ const FlowEditor = () => {
     };
 
     const handleEdgeAdd = (connection) => {
-        saveHistory(); 
+        saveHistory();
         setEdges((prev) => addEdge(connection, prev));
+    };
+
+    const saveData = () => {
+        setSavedState({ nodes, edges });
+        setHistory([]);
+        setRedoStack([]);
+        alert("Flow saved successfully!");
     };
 
     const undo = () => {
         if (history.length === 0) return;
         const prevState = history[history.length - 1];
 
-        setRedoStack((prev) => [...prev, { nodes, edges }]); 
+        setRedoStack((prev) => [...prev, { nodes, edges }]);
         setNodes(prevState.nodes);
         setEdges(prevState.edges);
-        setHistory(history.slice(0, -1)); 
+        setHistory(history.slice(0, -1));
     };
 
     const redo = () => {
         if (redoStack.length === 0) return;
         const nextState = redoStack[redoStack.length - 1];
 
-        setHistory((prev) => [...prev, { nodes, edges }]); 
+        setHistory((prev) => [...prev, { nodes, edges }]);
         setNodes(nextState.nodes);
         setEdges(nextState.edges);
-        setRedoStack(redoStack.slice(0, -1)); 
+        setRedoStack(redoStack.slice(0, -1));
     };
 
     return (
         <div style={{ width: "100vw", height: "100vh" }}>
-            <div style={{ marginBottom: 10 }}>
+            <div className="flow-div">
                 <button onClick={addNode}>Add Node</button>
                 <button onClick={deleteNode} disabled={!selectedNode}>
                     Delete Selected Node
@@ -99,14 +107,15 @@ const FlowEditor = () => {
                 <button onClick={redo} disabled={redoStack.length === 0}>
                     Redo
                 </button>
+                <button onClick={saveData}>Save</button>
             </div>
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
                 onNodesChange={handleNodesChange}
-                onEdgesChange={onEdgesChange} 
-                onConnect={handleEdgeAdd} 
-                onNodeClick={onNodeClick} 
+                onEdgesChange={onEdgesChange}
+                onConnect={handleEdgeAdd}
+                onNodeClick={onNodeClick}
                 fitView
             >
                 <Background />
